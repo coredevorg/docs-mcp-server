@@ -6,3 +6,4 @@ public/assets/
 .env*
 !*.env.example
 *.code-workspace
+.DS_Store
