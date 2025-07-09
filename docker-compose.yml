@@ -15,7 +15,7 @@ services:
       - MCP_PORT=6280
     volumes:
       - docs-mcp-data:/data
-      - /Users/bst/Developer/MCP/docs-mcp-server/docs:/docs:ro
+      - /root/docs-mcp-server/docs:/docs:ro
 
   docs-mcp-web:
     image: ghcr.io/arabold/docs-mcp-server:latest
@@ -33,7 +33,7 @@ services:
       - WEB_PORT=6281
     volumes:
       - docs-mcp-data:/data
-      - /Users/bst/Developer/MCP/docs-mcp-server/docs:/docs:ro
+      - /root/docs-mcp-server/docs:/docs:ro
 
 volumes:
   docs-mcp-data:
