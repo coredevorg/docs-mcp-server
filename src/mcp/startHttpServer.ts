@@ -30,7 +30,17 @@ export async function startHttpServer(
         const transport = new SSEServerTransport("/messages", res);
         sseTransports[transport.sessionId] = transport;
 
+        // Keep-Alive-Ping alle 15 Sekunden
+        const keepAliveInterval = setInterval(() => {
+          try {
+            res.write(": keep-alive\n\n");
+          } catch (e) {
+            // Ignoriere Fehler beim Schreiben, z.B. wenn Verbindung schon geschlossen
+          }
+        }, 15000);
+
         res.on("close", () => {
+          clearInterval(keepAliveInterval);
           delete sseTransports[transport.sessionId];
           transport.close();
         });
