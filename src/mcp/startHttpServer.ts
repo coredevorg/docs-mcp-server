@@ -1,4 +1,5 @@
 import * as http from "node:http";
+import type { IncomingMessage, ServerResponse } from "node:http";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
@@ -21,7 +22,7 @@ export async function startHttpServer(
   const server = createMcpServerInstance(tools);
   const sseTransports: Record<string, SSEServerTransport> = {};
 
-  const httpServer = http.createServer(async (req, res) => {
+  const httpServer = http.createServer(async (req: IncomingMessage, res: ServerResponse) => {
     try {
       const url = new URL(req.url || "/", `http://${req.headers.host}`);
 
