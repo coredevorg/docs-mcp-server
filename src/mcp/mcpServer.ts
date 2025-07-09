@@ -34,7 +34,7 @@ export function createMcpServerInstance(tools: McpServerTools): McpServer {
     "scrape_docs",
     "Scrape and index documentation from a URL for a library. Use this tool to index a new library or a new version.",
     {
-      url: z.string().url().describe("Documentation root URL to scrape."),
+      url: z.string().describe("Documentation root URL to scrape."),
       library: z.string().describe("Library name."),
       version: z.string().optional().describe("Library version (optional)."),
       maxPages: z
@@ -290,7 +290,7 @@ ${r.content}\n`,
     "get_job_info",
     "Get details for a specific indexing job. Use the 'list_jobs' tool to find the job ID.",
     {
-      jobId: z.string().uuid().describe("Job ID to query."),
+      jobId: z.string().describe("Job ID to query."),
     },
     {
       title: "Get Indexing Job Info",
@@ -321,7 +321,7 @@ ${r.content}\n`,
     "cancel_job",
     "Cancel a queued or running indexing job. Use the 'list_jobs' tool to find the job ID.",
     {
-      jobId: z.string().uuid().describe("Job ID to cancel."),
+      jobId: z.string().describe("Job ID to cancel."),
     },
     {
       title: "Cancel Indexing Job",
@@ -384,7 +384,7 @@ ${r.content}\n`,
     "fetch_url",
     "Fetch a single URL and convert its content to Markdown. Use this tool to read the content of any web page.",
     {
-      url: z.string().url().describe("URL to fetch and convert to Markdown."),
+      url: z.string().describe("URL to fetch and convert to Markdown."),
       followRedirects: z
         .boolean()
         .optional()
