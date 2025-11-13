@@ -9,11 +9,5 @@ public/assets/
 *.code-workspace
 .tsbuildinfo
 
-# local configuration
-CLAUDE.md
-.cursorrules
-.cursorignore
-.claude/
-
 # documents
 docs/
