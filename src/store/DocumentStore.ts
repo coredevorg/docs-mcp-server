@@ -208,9 +208,10 @@ export class DocumentStore {
           string | null,
           string | null,
           number | null,
+          string | null,
         ]
       >(
-        "INSERT INTO pages (version_id, url, title, etag, last_modified, content_type, depth) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(version_id, url) DO UPDATE SET title = excluded.title, content_type = excluded.content_type, etag = excluded.etag, last_modified = excluded.last_modified, depth = excluded.depth",
+        "INSERT INTO pages (version_id, url, title, etag, last_modified, content_type, depth, source_link) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(version_id, url) DO UPDATE SET title = excluded.title, content_type = excluded.content_type, etag = excluded.etag, last_modified = excluded.last_modified, depth = excluded.depth, source_link = excluded.source_link",
       ),
       getPageId: this.db.prepare<[number, string]>(
         "SELECT id FROM pages WHERE version_id = ? AND url = ?",
@@ -1083,6 +1084,9 @@ export class DocumentStore {
         // Extract lastModified from document metadata if available
         const lastModified = result.lastModified || null;
 
+        // Extract original link from front-matter if available
+        const sourceLink = result.originalLink || null;
+
         // Insert or update page record
         this.statements.insertPage.run(
           versionId,
@@ -1092,6 +1096,7 @@ export class DocumentStore {
           lastModified,
           contentType,
           depth,
+          sourceLink,
         );
 
         // Query for the page ID since we can't use RETURNING

@@ -88,6 +88,7 @@ export class MarkdownPipeline extends BasePipeline {
       links: context.links,
       errors: context.errors,
       chunks,
+      originalLink: context.originalLink,
     };
   }
 }

@@ -15,6 +15,7 @@ export interface DbPage {
   last_modified: string | null;
   content_type: string | null;
   depth: number | null;
+  source_link: string | null;
   created_at: string;
   updated_at: string;
 }

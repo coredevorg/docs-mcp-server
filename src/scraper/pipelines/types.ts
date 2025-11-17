@@ -18,6 +18,8 @@ export interface PipelineResult {
   errors?: Error[];
   /** Pre-split chunks from pipeline processing */
   chunks?: Chunk[];
+  /** Original source link from front-matter metadata */
+  originalLink?: string | null;
 }
 
 /**
