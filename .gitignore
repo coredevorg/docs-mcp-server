@@ -8,3 +8,7 @@ public/assets/
 !*.env.example
 *.code-workspace
 .tsbuildinfo
+
+docs/
+test-data/
+.serena/cache/
