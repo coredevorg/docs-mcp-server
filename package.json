@@ -49,7 +49,7 @@
     "@kitajs/html": "^4.2.9",
     "@kitajs/ts-html-plugin": "^4.1.1",
     "@langchain/aws": "^0.1.13",
-    "@langchain/core": "^1.0.5",
+    "@langchain/core": "^0.3.79",
     "@langchain/google-genai": "^0.2.16",
     "@langchain/google-vertexai": "^0.2.16",
     "@langchain/openai": "^0.6.3",
@@ -89,7 +89,7 @@
     "tree-sitter-python": "^0.21.0",
     "tree-sitter-typescript": "^0.23.2",
     "turndown": "^7.2.2",
-    "zod": "^4.1.12"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.2",
