@@ -1,0 +1,27 @@
+# Local development overrides
+# This file is gitignored and contains local customizations
+# It automatically extends docker-compose.yml
+
+version: '3.8'
+
+services:
+  worker:
+    # Use locally built image instead of pulling from registry
+    image: docs-mcp-server:local
+    # Custom port to avoid conflicts with other services
+    ports:
+      - "6270:8080"
+
+  mcp:
+    # Use locally built image instead of pulling from registry
+    image: docs-mcp-server:local
+    # Custom port to avoid conflicts with other services
+    ports:
+      - "6290:6280"
+
+  web:
+    # Use locally built image instead of pulling from registry
+    image: docs-mcp-server:local
+    # Custom port to avoid conflicts with other services
+    ports:
+      - "6280:6281"
