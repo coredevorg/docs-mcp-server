@@ -1,5 +1,5 @@
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { PipelineJobStatus } from "../pipeline/types";
 import { analytics, TelemetryEvent } from "../telemetry";
 import type { JobInfo } from "../tools";
@@ -181,12 +181,11 @@ ${r.content}\n`,
   );
 
   // List libraries tool
+  // @ts-expect-error TypeScript has issues with empty Zod objects as ZodRawShape
   server.tool(
     "list_libraries",
     "List all indexed libraries.",
-    {
-      // no params
-    },
+    z.object({}),
     {
       title: "List Libraries",
       readOnlyHint: true,
