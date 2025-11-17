@@ -90,6 +90,10 @@ export class DocumentRetrieverService {
     // Convert null to undefined for consistency
     const mimeType = initialChunks.length > 0 ? initialChunks[0].content_type : undefined;
 
+    // Extract sourceLink from the first document (page-level field)
+    const sourceLink =
+      initialChunks.length > 0 ? initialChunks[0].source_link : undefined;
+
     // Find the maximum score from the initial results
     const maxScore = Math.max(...initialChunks.map((chunk) => chunk.score));
 
@@ -111,6 +115,7 @@ export class DocumentRetrieverService {
       content,
       score: maxScore,
       mimeType,
+      sourceLink,
     };
   }
 }

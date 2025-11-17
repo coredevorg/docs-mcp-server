@@ -56,6 +56,7 @@ export interface DbPageChunk extends DbChunk {
   url: string;
   title?: string | null;
   content_type?: string | null;
+  source_link?: string | null;
 }
 
 /**
@@ -81,6 +82,7 @@ export interface StoreSearchResult {
   content: string;
   score: number | null;
   mimeType?: string | null;
+  sourceLink?: string | null;
 }
 
 /**

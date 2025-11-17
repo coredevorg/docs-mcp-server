@@ -1389,6 +1389,7 @@ export class DocumentStore {
             p.url as url,
             p.title as title,
             p.content_type as content_type,
+            p.source_link as source_link,
             COALESCE(1 / (1 + v.vec_distance), 0) as vec_score,
             COALESCE(-MIN(f.fts_score, 0), 0) as fts_score
           FROM documents d
@@ -1445,6 +1446,7 @@ export class DocumentStore {
             p.url as url,
             p.title as title,
             p.content_type as content_type,
+            p.source_link as source_link,
             bm25(documents_fts, 10.0, 1.0, 5.0, 1.0) as fts_score
           FROM documents_fts f
           JOIN documents d ON f.rowid = d.id
