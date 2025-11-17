@@ -16,7 +16,7 @@ services:
     container_name: docs-mcp-worker
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "6270:8080"
     env_file:
       - .env
     volumes:
@@ -55,7 +55,7 @@ services:
     container_name: docs-mcp-server
     restart: unless-stopped
     ports:
-      - "6280:6280"
+      - "6290:6280"
     env_file:
       - .env
     depends_on:
@@ -87,7 +87,7 @@ services:
     container_name: docs-mcp-web
     restart: unless-stopped
     ports:
-      - "6281:6281"
+      - "6280:6281"
     env_file:
       - .env
     depends_on:
