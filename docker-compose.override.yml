@@ -11,6 +11,9 @@ services:
     # Custom port to avoid conflicts with other services
     ports:
       - "6270:8080"
+    # Mount local docs directory for scraping local files
+    volumes:
+      - ./docs:/app/docs:ro
 
   mcp:
     # Use locally built image instead of pulling from registry
