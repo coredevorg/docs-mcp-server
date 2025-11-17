@@ -16,7 +16,8 @@
       "mcp__serena__find_file",
       "mcp__serena__find_referencing_symbols",
       "Bash(curl:*)",
-      "Bash(docker logs:*)"
+      "Bash(docker logs:*)",
+      "Bash(sqlite3:*)"
     ],
     "deny": [],
     "ask": []
