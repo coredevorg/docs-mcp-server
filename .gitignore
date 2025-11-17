@@ -9,6 +9,6 @@ public/assets/
 *.code-workspace
 .tsbuildinfo
 
-# documents
 docs/
 test-data/
+.serena/cache/
