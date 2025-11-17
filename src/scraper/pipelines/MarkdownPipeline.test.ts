@@ -129,9 +129,10 @@ This is a paragraph with a [link](https://test.example.com).
     );
     expect(MarkdownLinkExtractorMiddleware.prototype.process).toHaveBeenCalledTimes(1);
 
-    // Verify the result contains the original content
-    // Note: Frontmatter extraction and link extraction are not implemented yet
-    expect(result.textContent).toBe(markdown);
+    // Verify front-matter was removed from content
+    expect(result.textContent).not.toContain("title: Test Document");
+    expect(result.textContent).toContain("# Heading");
+    expect(result.textContent).toContain("This is a paragraph");
   });
 
   it("process collects errors from middleware", async () => {
@@ -264,9 +265,15 @@ More content here.
     );
     expect(MarkdownLinkExtractorMiddleware.prototype.process).toHaveBeenCalledTimes(1);
 
-    // Verify the result contains the original content
-    // Note: Frontmatter extraction and link extraction are not implemented yet
-    expect(result.textContent).toBe(markdown);
+    // Verify front-matter was removed from content
+    expect(result.textContent).not.toContain("title: End-to-End Test");
+    expect(result.textContent).not.toContain(
+      "description: Testing the full markdown pipeline",
+    );
+
+    // Verify actual content is preserved
+    expect(result.textContent).toContain("# Main Heading");
+    expect(result.textContent).toContain("This is a paragraph");
 
     // Verify no errors occurred
     expect(result.errors).toHaveLength(0);

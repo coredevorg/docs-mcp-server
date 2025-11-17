@@ -40,8 +40,16 @@ export class GreedySplitter implements DocumentSplitter {
    * section boundaries to maintain document structure. This balances the need for
    * context with semantic coherence.
    */
-  async splitText(markdown: string, contentType?: string): Promise<Chunk[]> {
-    const initialChunks = await this.baseSplitter.splitText(markdown, contentType);
+  async splitText(
+    markdown: string,
+    contentType?: string,
+    hierarchicalPath?: string[],
+  ): Promise<Chunk[]> {
+    const initialChunks = await this.baseSplitter.splitText(
+      markdown,
+      contentType,
+      hierarchicalPath,
+    );
     const concatenatedChunks: Chunk[] = [];
     let currentChunk: Chunk | null = null;
 

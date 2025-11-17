@@ -6,6 +6,7 @@ import {
 } from "../../utils/config";
 import { MimeTypeUtils } from "../../utils/mimeTypeUtils";
 import type { ContentFetcher, RawContent } from "../fetcher/types";
+import { FrontMatterMiddleware } from "../middleware/FrontMatterMiddleware";
 import { MarkdownLinkExtractorMiddleware } from "../middleware/MarkdownLinkExtractorMiddleware";
 import { MarkdownMetadataExtractorMiddleware } from "../middleware/MarkdownMetadataExtractorMiddleware";
 import type { ContentProcessorMiddleware, MiddlewareContext } from "../middleware/types";
@@ -29,6 +30,7 @@ export class MarkdownPipeline extends BasePipeline {
   ) {
     super();
     this.middleware = [
+      new FrontMatterMiddleware(), // Must be first to parse and remove front-matter before other processing
       new MarkdownMetadataExtractorMiddleware(),
       new MarkdownLinkExtractorMiddleware(),
     ];
@@ -72,9 +74,11 @@ export class MarkdownPipeline extends BasePipeline {
     await this.executeMiddlewareStack(this.middleware, context);
 
     // Split the content using SemanticMarkdownSplitter
+    // Pass hierarchical path from front-matter if available for enhanced chunking
     const chunks = await this.greedySplitter.splitText(
       typeof context.content === "string" ? context.content : "",
       rawContent.mimeType,
+      context.hierarchicalPath,
     );
 
     return {

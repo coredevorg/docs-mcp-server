@@ -100,29 +100,41 @@ export class SemanticMarkdownSplitter implements DocumentSplitter {
 
   /**
    * Main entry point for splitting markdown content
+   * @param markdown The markdown content to split
+   * @param _contentType Optional content type (for compatibility)
+   * @param hierarchicalPath Optional hierarchical path from front-matter to prepend to all sections
    */
-  async splitText(markdown: string, _contentType?: string): Promise<Chunk[]> {
+  async splitText(
+    markdown: string,
+    _contentType?: string,
+    hierarchicalPath?: string[],
+  ): Promise<Chunk[]> {
     // Note: JSON content is now handled by dedicated JsonDocumentSplitter in JsonPipeline
     // This splitter focuses on markdown, HTML, and plain text content
 
     // For markdown, HTML, or plain text, process normally
     const html = await this.markdownToHtml(markdown);
     const dom = await this.parseHtml(html);
-    const sections = await this.splitIntoSections(dom);
+    const sections = await this.splitIntoSections(dom, hierarchicalPath);
     return this.splitSectionContent(sections);
   }
 
   /**
    * Step 1: Split document into sections based on H1-H6 headings,
    * as well as code blocks and tables.
+   * @param dom The DOM to split
+   * @param basePath Optional base path from front-matter to prepend to all section paths
    */
-  private async splitIntoSections(dom: Document): Promise<DocumentSection[]> {
+  private async splitIntoSections(
+    dom: Document,
+    basePath?: string[],
+  ): Promise<DocumentSection[]> {
     const body = dom.querySelector("body");
     if (!body) {
       throw new Error("Invalid HTML structure: no body element found");
     }
 
-    let currentSection = this.createRootSection();
+    let currentSection = this.createRootSection(basePath);
     const sections: DocumentSection[] = [];
     const stack: DocumentSection[] = [currentSection];
 
@@ -141,16 +153,18 @@ export class SemanticMarkdownSplitter implements DocumentSplitter {
         }
 
         // Start new section with the header
+        // If basePath is provided (from front-matter), prepend it to the section path
+        const sectionPath = [
+          ...stack.slice(1).reduce((acc: string[], s) => {
+            const lastPath = s.path[s.path.length - 1];
+            if (lastPath) acc.push(lastPath);
+            return acc;
+          }, []),
+          title,
+        ];
         currentSection = {
           level,
-          path: [
-            ...stack.slice(1).reduce((acc: string[], s) => {
-              const lastPath = s.path[s.path.length - 1];
-              if (lastPath) acc.push(lastPath);
-              return acc;
-            }, []),
-            title,
-          ],
+          path: basePath ? [...basePath, ...sectionPath] : sectionPath,
           content: [
             {
               type: "heading",
@@ -312,11 +326,12 @@ export class SemanticMarkdownSplitter implements DocumentSplitter {
 
   /**
    * Helper to create the root section
+   * @param basePath Optional base path from front-matter
    */
-  private createRootSection(): DocumentSection {
+  private createRootSection(basePath?: string[]): DocumentSection {
     return {
       level: 0,
-      path: [],
+      path: basePath || [],
       content: [],
     };
   }

@@ -68,6 +68,7 @@
     "fastify": "^5.6.1",
     "flowbite": "^3.1.2",
     "fuse.js": "^7.1.0",
+    "gray-matter": "^4.0.3",
     "header-generator": "^2.1.76",
     "htmx.org": "^2.0.6",
     "iconv-lite": "^0.6.3",

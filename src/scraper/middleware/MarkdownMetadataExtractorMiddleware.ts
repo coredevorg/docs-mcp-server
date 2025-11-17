@@ -11,12 +11,15 @@ export class MarkdownMetadataExtractorMiddleware implements ContentProcessorMidd
    */
   async process(context: MiddlewareContext, next: () => Promise<void>): Promise<void> {
     try {
-      let title = "Untitled";
-      const match = context.content.match(/^#\s+(.*)$/m);
-      if (match?.[1]) {
-        title = match[1].trim();
+      // Only extract title if not already set (e.g., by FrontMatterMiddleware)
+      if (!context.title) {
+        let title = "Untitled";
+        const match = context.content.match(/^#\s+(.*)$/m);
+        if (match?.[1]) {
+          title = match[1].trim();
+        }
+        context.title = title;
       }
-      context.title = title;
     } catch (error) {
       context.errors.push(
         new Error(

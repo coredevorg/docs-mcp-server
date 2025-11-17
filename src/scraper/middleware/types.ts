@@ -3,6 +3,19 @@ import type { ContentFetcher } from "../fetcher/types";
 import type { ScraperOptions } from "../types";
 
 /**
+ * Front-matter data extracted from Markdown files.
+ */
+export interface FrontMatterData {
+  name?: string;
+  uuid?: string;
+  link?: string;
+  path?: string[];
+  topic?: string;
+  date?: string;
+  [key: string]: unknown;
+}
+
+/**
  * Represents the context passed through the middleware pipeline.
  */
 export interface MiddlewareContext {
@@ -26,6 +39,13 @@ export interface MiddlewareContext {
 
   /** Optional fetcher instance for resolving resources relative to the source. */
   fetcher?: ContentFetcher;
+
+  /** Front-matter data extracted from Markdown documents. */
+  frontMatter?: FrontMatterData;
+  /** Original link from front-matter metadata. */
+  originalLink?: string;
+  /** Hierarchical path from front-matter for enhanced chunking. */
+  hierarchicalPath?: string[];
 }
 
 /**
