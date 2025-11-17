@@ -231,11 +231,12 @@ ${r.content}\n`,
   );
 
   // List libraries tool
-  // @ts-expect-error TypeScript has issues with empty Zod objects as ZodRawShape
   server.tool(
     "list_libraries",
     "List all indexed libraries.",
-    z.object({}),
+    {
+      // no params
+    },
     {
       title: "List Libraries",
       readOnlyHint: true,
