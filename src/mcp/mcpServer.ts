@@ -210,13 +210,17 @@ export function createMcpServerInstance(
           exactMatch: false, // Always false for MCP interface
         });
 
-        const formattedResults = result.results.map(
-          (r: { url: string; content: string }, i: number) => `
-------------------------------------------------------------
-Result ${i + 1}: ${r.url}
-
-${r.content}\n`,
-        );
+        const formattedResults = result.results.map((r, i: number) => {
+          const parts = [
+            `------------------------------------------------------------`,
+            `Result ${i + 1}: ${r.url}`,
+          ];
+          if (r.sourceLink) {
+            parts.push(`origin: ${r.sourceLink}`);
+          }
+          parts.push(`\n${r.content}\n`);
+          return parts.join("\n");
+        });
 
         if (formattedResults.length === 0) {
           return createResponse(

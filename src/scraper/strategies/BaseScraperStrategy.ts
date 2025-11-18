@@ -212,6 +212,7 @@ export abstract class BaseScraperStrategy implements ScraperStrategy {
                 chunks: result.content.chunks || [],
                 etag: result.etag || null,
                 lastModified: result.lastModified || null,
+                originalLink: result.content.originalLink || null,
               } satisfies ScrapeResult,
               pageId: item.pageId,
             });

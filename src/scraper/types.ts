@@ -137,6 +137,8 @@ export interface ScrapeResult {
   etag?: string | null;
   /** Last-Modified from HTTP response for caching */
   lastModified?: string | null;
+  /** Original source link from front-matter metadata */
+  originalLink?: string | null;
 }
 
 /**
