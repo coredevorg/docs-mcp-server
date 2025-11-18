@@ -9,7 +9,4 @@ public/assets/
 *.code-workspace
 .tsbuildinfo
 
-docs/
-test-data/
-.serena/cache/
-.store*
+data/

@@ -14,8 +14,8 @@ services:
     # Mount local docs directory for scraping local files
     # Mount data directory for portable SQLite database
     volumes:
-      - ${HOME}/docs-mcp-server/docs:/app/docs:ro
-      - ${HOME}/docs-mcp-server/data:/data
+      - ./data/docs:/app/docs:ro
+      - ./data/db:/data
 
   mcp:
     # Use locally built image instead of pulling from registry
