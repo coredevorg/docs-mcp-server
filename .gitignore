@@ -11,5 +11,4 @@ public/assets/
 
 docs/
 test-data/
-.store/
-.store-test/
+.store*
