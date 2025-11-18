@@ -12,8 +12,10 @@ services:
     ports:
       - "6270:8080"
     # Mount local docs directory for scraping local files
+    # Mount data directory for portable SQLite database
     volumes:
-      - ./docs:/app/docs:ro
+      - ${HOME}/docs-mcp-server/docs:/app/docs:ro
+      - ${HOME}/docs-mcp-server/data:/data
 
   mcp:
     # Use locally built image instead of pulling from registry
