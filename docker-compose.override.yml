@@ -4,10 +4,22 @@
 
 version: '3.8'
 
+# Custom network name to avoid conflicts with legacy installations
+networks:
+  default:
+    name: cdev-docs-mcp-network
+
+# Override volume names to avoid conflicts
+volumes:
+  docs-mcp-data:
+    name: cdev-docs-mcp-data
+
 services:
   worker:
     # Use locally built image instead of pulling from registry
     image: docs-mcp-server:local
+    # Custom container name to avoid conflicts with legacy installations
+    container_name: cdev-docs-mcp-worker
     # Custom port to avoid conflicts with other services
     ports:
       - "6270:8080"
@@ -20,6 +32,8 @@ services:
   mcp:
     # Use locally built image instead of pulling from registry
     image: docs-mcp-server:local
+    # Custom container name to avoid conflicts with legacy installations
+    container_name: cdev-docs-mcp-server
     # Custom port to avoid conflicts with other services
     ports:
       - "6290:6280"
@@ -27,6 +41,8 @@ services:
   web:
     # Use locally built image instead of pulling from registry
     image: docs-mcp-server:local
+    # Custom container name to avoid conflicts with legacy installations
+    container_name: cdev-docs-mcp-web
     # Custom port to avoid conflicts with other services
     ports:
       - "6280:6281"
