@@ -11,4 +11,5 @@ public/assets/
 
 docs/
 test-data/
+.serena/cache/
 .store*
