@@ -1,0 +1,56 @@
+# Local development overrides with entrypoint modification for env var support
+# This file is gitignored and contains local customizations
+# It automatically extends docker-compose.yml
+
+version: '3.8'
+
+# Custom network name to avoid conflicts with legacy installations
+networks:
+  default:
+    name: cdev-docs-mcp-network
+
+# Override volume names to avoid conflicts
+volumes:
+  docs-mcp-data:
+    name: cdev-docs-mcp-data
+
+services:
+  worker:
+    # Use locally built image instead of pulling from registry
+    image: docs-mcp-server:local
+    # Custom container name to avoid conflicts with legacy installations
+    container_name: cdev-docs-mcp-worker
+    # Custom port to avoid conflicts with other services
+    ports:
+      - "6270:8080"
+    # Mount local docs directory for scraping local files
+    # Mount data directory for portable SQLite database
+    volumes:
+      - ./data/docs:/app/docs:ro
+      - ./data/db:/data
+
+  mcp:
+    # Use locally built image instead of pulling from registry
+    image: docs-mcp-server:local
+    # Custom container name to avoid conflicts with legacy installations
+    container_name: cdev-docs-mcp-server
+    # Custom port to avoid conflicts with other services
+    ports:
+      - "6290:6280"
+
+    # Entrypoint override to allow shell variable expansion
+    entrypoint: /bin/sh -c
+
+    # Command defined as string to allow variable interpolation
+    # ${MCP_READ_ONLY_FLAG:-} will be replaced by the env var or empty string
+    command: >
+      "exec node --enable-source-maps dist/index.js mcp --protocol http --host 0.0.0.0 --port 6280 --server-url http://worker:8080/api ${MCP_READ_ONLY_FLAG:-}"
+
+  web:
+    # Use locally built image instead of pulling from registry
+    image: docs-mcp-server:local
+    # Custom container name to avoid conflicts with legacy installations
+    container_name: cdev-docs-mcp-web
+    # Custom port to avoid conflicts with other services
+    ports:
+      - "6280:6281"

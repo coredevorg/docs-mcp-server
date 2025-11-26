@@ -1,0 +1,5 @@
+version: '3.8'
+
+services:
+  mcp:
+    command: [ "mcp", "--protocol", "http", "--host", "0.0.0.0", "--port", "6280", "--server-url", "http://worker:8080/api", "--read-only" ]
