@@ -1,0 +1,21 @@
+_meta:
+  version: "1.0"
+servers:
+  docs-mcp:
+    name: Docs MCP Server
+    type: mcp
+    image: ghcr.io/arabold/docs-mcp-server:latest
+    # No command needed - uses default entrypoint which runs in standalone mode
+    # The default command is: node --enable-source-maps dist/index.js
+    # Without --server-url, it automatically uses embedded worker
+    args:
+      - --protocol
+      - stdio
+    env:
+      OPENAI_API_KEY:
+        description: "OpenAI API Key for embeddings (optional, enables vector search)"
+        required: false
+    volumes:
+      - type: volume
+        source: docs-mcp-data
+        target: /data
