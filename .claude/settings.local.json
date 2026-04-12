@@ -18,7 +18,21 @@
       "Bash(curl:*)",
       "Bash(docker logs:*)",
       "Bash(sqlite3:*)",
-      "Bash(docker exec:*)"
+      "Bash(docker exec:*)",
+      "Bash(ssh root@proxy.coredev.org \"certbot certificates 2>&1\")",
+      "Bash(ssh root@proxy.coredev.org \"nginx -t 2>&1 && systemctl reload nginx && echo 'Nginx reloaded successfully'\")",
+      "Bash(ssh root@proxy.coredev.org \"grep -r 'docs.agorum.coredev.org' /etc/nginx/sites-enabled/ /etc/nginx/conf.d/ 2>/dev/null | head -5\")",
+      "Bash(ssh root@proxy.coredev.org \"grep -rl 'docs.agorum' /etc/nginx/ 2>/dev/null\")",
+      "Bash(ssh root@proxy.coredev.org \"cat /etc/nginx/sites-available/docs.agorum.coredev.org\")",
+      "Bash(ssh root@proxy.coredev.org \"ls -la /etc/nginx/sites-enabled/ | grep docs\")",
+      "Bash(ssh root@proxy.coredev.org \"ls -la /etc/letsencrypt/live/docs.agorum.coredev.org/\")",
+      "Bash(ssh root@proxy.coredev.org \"openssl x509 -noout -dates -serial -in /etc/letsencrypt/live/docs.agorum.coredev.org/fullchain.pem\")",
+      "Bash(ssh root@proxy.coredev.org \"systemctl restart nginx && echo 'Nginx restarted' && sleep 1 && echo | openssl s_client -connect localhost:443 -servername docs.agorum.coredev.org 2>/dev/null | openssl x509 -noout -dates -serial\")",
+      "Bash(dig +short docs.agorum.coredev.org)",
+      "Bash(ssh root@proxy.coredev.org \"hostname -I && curl -s ifconfig.me\")",
+      "Bash(echo | openssl s_client -connect 178.63.130.199:443 -servername docs.agorum.coredev.org -no_ticket 2>/dev/null | openssl x509 -noout -dates -serial)",
+      "Bash(echo | openssl s_client -connect docs.agorum.coredev.org:443 -servername docs.agorum.coredev.org -no_ticket 2>/dev/null | openssl x509 -noout -dates -serial)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []
