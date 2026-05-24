@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
+import os from "node:os";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { extractUuid, normalizeFrontmatter, resolveSource } from "./sync-agorum-docs";
 
@@ -161,37 +161,24 @@ describe("extractUuid", () => {
 
 describe("resolveSource", () => {
   let tmpDir: string;
-  let workDir: string;
 
   beforeEach(async () => {
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "sync-test-"));
-    workDir = path.join(tmpDir, "work");
-    await fs.mkdir(workDir, { recursive: true });
   });
 
   afterEach(async () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  it("picks the alphabetically latest agorum-* directory", async () => {
-    await fs.mkdir(path.join(workDir, "agorum-2026-03-01"));
-    await fs.mkdir(path.join(workDir, "agorum-2026-04-12"));
-    await fs.mkdir(path.join(workDir, "Documentation Tree Rev. 11.13.0"));
-    await fs.mkdir(path.join(workDir, "agorum-2026-02-01"));
-
-    const resolved = await resolveSource(undefined, workDir);
-    expect(path.basename(resolved)).toBe("agorum-2026-04-12");
-  });
-
-  it("throws when no agorum-* directory exists", async () => {
-    await fs.mkdir(path.join(workDir, "other-dir"));
-
-    await expect(resolveSource(undefined, workDir)).rejects.toThrow(/No agorum-/);
-  });
-
-  it("resolves explicit source path without reading the work dir", async () => {
-    const explicit = path.join(tmpDir, "some", "explicit", "path");
-    const resolved = await resolveSource(explicit, workDir);
+  it("resolves an explicit source path that exists", async () => {
+    const explicit = path.join(tmpDir, "my-source");
+    await fs.mkdir(explicit);
+    const resolved = await resolveSource(explicit);
     expect(resolved).toBe(path.resolve(explicit));
+  });
+
+  it("throws when explicit source path does not exist", async () => {
+    const missing = path.join(tmpDir, "does-not-exist");
+    await expect(resolveSource(missing)).rejects.toThrow(/does not exist/);
   });
 });

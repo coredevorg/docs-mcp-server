@@ -3,7 +3,7 @@
 /**
  * agorum-Doc-Sync: Transform + Multi-Target-Distribution.
  *
- * Reads the latest agorum export from ~/.acdocs/work/agorum-*, normalizes
+ * Reads the agorum export from ~/.acdocs/work/acdocs-live, normalizes
  * the YAML frontmatter (drops `date` and `topic`, keeps everything else),
  * writes files as <uuid>.md into the local target, and rsyncs the result
  * to the configured remote host. Prints refresh commands at the end.
@@ -28,11 +28,7 @@ const DROP_KEYS = new Set(["date", "topic"]);
 const DEFAULT_LOCAL_TARGET = "data/docs/agorum";
 const DEFAULT_REMOTE_TARGET =
   "root@sourcebot.coredev.org:/root/docs-mcp-server/data/docs/agorum";
-const SOURCE_GLOB_PREFIX = "agorum-";
-
-function defaultWorkDir(): string {
-  return path.join(os.homedir(), ".acdocs", "work");
-}
+const DEFAULT_SOURCE = path.join(os.homedir(), ".acdocs", "work", "acdocs-live");
 const REFRESH_CMD_LOCAL =
   "docker exec cdev-docs-mcp-worker node /app/dist/index.js refresh agorum";
 const REFRESH_CMD_REMOTE = `ssh root@sourcebot.coredev.org '${REFRESH_CMD_LOCAL}'`;
@@ -154,34 +150,13 @@ async function listMarkdownFiles(dir: string): Promise<string[]> {
   return files.sort();
 }
 
-/**
- * Returns the absolute path to the source directory.
- *
- * If `explicit` is given, it is resolved as-is. Otherwise, the most recent
- * sub-directory of `workDir` (default: `~/.acdocs/work/`) whose name starts
- * with `agorum-` is selected — alphabetical sort is chronological for ISO
- * date names. `workDir` is a parameter so tests can override it without
- * touching $HOME.
- */
-export async function resolveSource(
-  explicit?: string,
-  workDir: string = defaultWorkDir(),
-): Promise<string> {
-  if (explicit) return path.resolve(explicit);
-
-  const entries = await fs.readdir(workDir, { withFileTypes: true });
-  const matches = entries
-    .filter((e) => e.isDirectory() && e.name.startsWith(SOURCE_GLOB_PREFIX))
-    .map((e) => e.name)
-    .sort();
-
-  if (matches.length === 0) {
-    throw new Error(
-      `No ${SOURCE_GLOB_PREFIX}* directory found in ${workDir}. Use --source to specify explicitly.`,
-    );
+export async function resolveSource(explicit?: string): Promise<string> {
+  const resolved = path.resolve(explicit ?? DEFAULT_SOURCE);
+  const stat = await fs.stat(resolved).catch(() => null);
+  if (!stat || !stat.isDirectory()) {
+    throw new Error(`Source directory does not exist: ${resolved}`);
   }
-
-  return path.join(workDir, matches[matches.length - 1]);
+  return resolved;
 }
 
 async function loadSources(sourceDir: string): Promise<LoadedSource[]> {
@@ -396,11 +371,11 @@ async function main(): Promise<void> {
   program
     .name("sync-agorum-docs")
     .description(
-      "Sync agorum docs from ~/.acdocs/work/agorum-* to local target and rsync to sourcebot.",
+      "Sync agorum docs from ~/.acdocs/work/acdocs-live to local target and rsync to sourcebot.",
     )
     .option(
       "-s, --source <dir>",
-      "source directory (default: newest ~/.acdocs/work/agorum-* )",
+      `source directory (default: ${DEFAULT_SOURCE})`,
     )
     .option(
       "-t, --target <dir>",
