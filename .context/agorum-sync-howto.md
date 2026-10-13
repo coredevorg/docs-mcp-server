@@ -13,8 +13,8 @@ in die beiden docs-mcp-server-Instanzen einspielen will.
 
 ```bash
 # 1. Neuen Export vom Fetch-Backend ziehen
-#    (in der acdocs-App oder via CLI, je nach deinem Workflow)
-#    → Ergebnis: ~/.acdocs/work/agorum-<YYYY-MM-DD>/
+#    (normalerweise per Cron via ~/Developer/acdocs/update-agorum-docs.sh)
+#    → Ergebnis: ~/.acdocs/work/acdocs-live/
 
 # 2. Sync prüfen und ausführen
 cd ~/Developer/MCP/docs-mcp-server
@@ -51,23 +51,32 @@ du nichts davon verstehst oder etwas kaputt geht, lies weiter.
 
 ## Schritt 1: Neuen Export besorgen
 
-Das Fetch-Backend `acdocs` legt den Export nach
-`~/.acdocs/work/agorum-<YYYY-MM-DD>/` ab — mit nummerierten
-Dateinamen (`001 - …md`, `002 - …md`) und dem üblichen
-Frontmatter-Schema (`name`, `uuid`, `date`, `link`, `path`,
-`topic`).
+Das Fetch-Backend `acdocs` legt den Live-Export nach
+`~/.acdocs/work/acdocs-live/` ab — mit nummerierten Dateinamen
+(`0001 - …md`) und einem doppelten Frontmatter-Schema: außen
+(`name`, `uuid`, `title`, `generated_at`, …), innen (`name`,
+`uuid`, `date`, `link`, `path`, `topic`).
 
-Wie du den Export erzeugst, hängt von deinem acdocs-Workflow ab
-(App, CLI, API). Das ist Sache des acdocs-Projekts und nicht
-Teil dieses HOWTOs.
+Der Export läuft normalerweise automatisch per Cron über
+`~/Developer/acdocs/update-agorum-docs.sh` (das auch Sync und
+Refresh gleich mit anstößt). Details sind Sache des
+acdocs-Projekts und nicht Teil dieses HOWTOs.
 
-**Kontrolle:** Der Ordner muss existieren, mehrere hundert
-`.md`-Dateien enthalten, und der Name mit `agorum-` beginnen.
+**Kontrolle:** Der Ordner muss existieren und ~1000+
+`.md`-Dateien enthalten.
 
 ```bash
-ls ~/.acdocs/work/ | grep "^agorum-"
-ls ~/.acdocs/work/agorum-<YYYY-MM-DD>/ | wc -l
+ls ~/.acdocs/work/acdocs-live/ | wc -l
 ```
+
+**Hinweis Duplikate:** Ältere Stände des Exporters ließen bei
+jedem Lauf Altkopien mit verschobener Nummerierung liegen (gleiche
+uuid unter mehreren Dateinamen). Das Sync-Skript löst das selbst
+auf — es nimmt pro uuid die Kopie mit dem neuesten `generated_at`
+und meldet `Note: ignored N older duplicate copies`. Seit dem Fix
+in `acdocs-app` (generate-files räumt vor dem Schreiben alte
+`NNNN - *`-Dateien weg, 2026-07-19) sollte N bei 0 liegen; eine
+wieder wachsende Zahl deutet auf eine Regression im Exporter hin.
 
 ---
 
@@ -82,11 +91,15 @@ npm run sync:agorum -- --dry-run
 
 Was passiert dabei:
 
-- Das Skript findet automatisch das jüngste `agorum-*`-Verzeichnis
-  in `~/.acdocs/work/` (nach alphabetischer Sortierung — das
-  passt, weil die ISO-Datumsnamen chronologisch sortieren).
-- Es normalisiert das Frontmatter im Arbeitsspeicher: `date` und
-  `topic` werden entfernt, Rest bleibt 1:1.
+- Das Skript liest `~/.acdocs/work/acdocs-live/` (überschreibbar
+  mit `--source <dir>`).
+- Duplikate (gleiche uuid in mehreren Dateien) werden aufgelöst:
+  die Kopie mit dem neuesten `generated_at` gewinnt.
+- Es normalisiert das Frontmatter im Arbeitsspeicher: die bei
+  jedem Fetch-Lauf rauschenden Felder `generated_at` (äußerer
+  Block) sowie `date` und `topic` (innerer Block) werden
+  entfernt, Rest bleibt 1:1. So bleiben inhaltlich unveränderte
+  Dokumente byte-identisch zwischen Syncs.
 - Byte-Vergleich mit dem lokalen Ziel
   (`data/docs/agorum/<uuid>.md`).
 - rsync läuft als `--dry-run` und zeigt dir die geplanten

@@ -2,7 +2,12 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { extractUuid, normalizeFrontmatter, resolveSource } from "./sync-agorum-docs";
+import {
+  extractUuid,
+  loadSources,
+  normalizeFrontmatter,
+  resolveSource,
+} from "./sync-agorum-docs";
 
 describe("normalizeFrontmatter", () => {
   it("drops `date` and `topic` while keeping other fields and body", () => {
@@ -130,6 +135,150 @@ describe("normalizeFrontmatter", () => {
     const out = normalizeFrontmatter(input).toString("utf8");
     expect(out).toContain("dateCreated: keep-me");
     expect(out).toContain("topicList: keep-me-too");
+  });
+});
+
+describe("normalizeFrontmatter (acdocs-live double-block format)", () => {
+  const doubleBlockDoc = [
+    "---",
+    "name: Example Doc",
+    "uuid: abc-123",
+    "title: Example| Title",
+    "generated_at: 2026-06-28T01:35:40.051Z",
+    "last_modify_date: Tue May 26 2026 11:08:22 GMT+0200",
+    "---",
+    "",
+    "---",
+    "name: Example Doc",
+    "uuid: abc-123",
+    "date: 2026-06-28T01:35:19.445Z",
+    "link: https://example.com/x",
+    'path: ["A","B"]',
+    "topic: acdocs-live",
+    "---",
+    "",
+    "# Heading",
+    "",
+    "Body text.",
+    "",
+  ].join("\n");
+
+  it("drops generated_at from the outer block and date/topic from the inner block", () => {
+    const out = normalizeFrontmatter(Buffer.from(doubleBlockDoc)).toString("utf8");
+    expect(out).toBe(
+      [
+        "---",
+        "name: Example Doc",
+        "uuid: abc-123",
+        "title: Example| Title",
+        "last_modify_date: Tue May 26 2026 11:08:22 GMT+0200",
+        "---",
+        "",
+        "---",
+        "name: Example Doc",
+        "uuid: abc-123",
+        "link: https://example.com/x",
+        'path: ["A","B"]',
+        "---",
+        "",
+        "# Heading",
+        "",
+        "Body text.",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("is idempotent on double-block documents", () => {
+    const once = normalizeFrontmatter(Buffer.from(doubleBlockDoc));
+    const twice = normalizeFrontmatter(once);
+    expect(once.equals(twice)).toBe(true);
+  });
+
+  it("leaves a thematic break at the start of the body untouched", () => {
+    const input = Buffer.from(
+      ["---", "uuid: x", "name: Y", "---", "", "---", "", "# Title", ""].join("\n"),
+    );
+    const out = normalizeFrontmatter(input).toString("utf8");
+    expect(out).toBe(input.toString("utf8"));
+  });
+
+  it("does not treat a key-value-like body section without uuid as metadata", () => {
+    const input = Buffer.from(
+      [
+        "---",
+        "uuid: x",
+        "---",
+        "",
+        "---",
+        "date: not metadata, part of the body",
+        "---",
+        "text",
+      ].join("\n"),
+    );
+    const out = normalizeFrontmatter(input).toString("utf8");
+    expect(out).toContain("date: not metadata, part of the body");
+  });
+});
+
+describe("loadSources", () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "sync-dedup-test-"));
+  });
+
+  afterEach(async () => {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  });
+
+  const makeDoc = (uuid: string, generatedAt: string, body: string) =>
+    [
+      "---",
+      `name: Doc ${uuid}`,
+      `uuid: ${uuid}`,
+      `generated_at: ${generatedAt}`,
+      "---",
+      "",
+      body,
+      "",
+    ].join("\n");
+
+  it("keeps the copy with the newest generated_at when a uuid appears twice", async () => {
+    // The newer timestamp sits in the file that sorts FIRST, proving that
+    // the timestamp wins over filename order.
+    await fs.writeFile(
+      path.join(tmpDir, "0001 - a.md"),
+      makeDoc("dup-1", "2026-06-28T00:00:00.000Z", "NEWER CONTENT"),
+    );
+    await fs.writeFile(
+      path.join(tmpDir, "0002 - a.md"),
+      makeDoc("dup-1", "2026-06-14T00:00:00.000Z", "OLDER CONTENT"),
+    );
+
+    const sources = await loadSources(tmpDir);
+    expect(sources).toHaveLength(1);
+    expect(sources[0].uuid).toBe("dup-1");
+    expect(sources[0].normalized.toString("utf8")).toContain("NEWER CONTENT");
+  });
+
+  it("returns one entry per uuid across a mix of unique and duplicated docs", async () => {
+    await fs.writeFile(
+      path.join(tmpDir, "0001 - a.md"),
+      makeDoc("dup-1", "2026-06-14T00:00:00.000Z", "old"),
+    );
+    await fs.writeFile(
+      path.join(tmpDir, "0002 - a.md"),
+      makeDoc("dup-1", "2026-06-28T00:00:00.000Z", "new"),
+    );
+    await fs.writeFile(
+      path.join(tmpDir, "0003 - b.md"),
+      makeDoc("unique-1", "2026-06-28T00:00:00.000Z", "solo"),
+    );
+
+    const sources = await loadSources(tmpDir);
+    const uuids = sources.map((s) => s.uuid).sort();
+    expect(uuids).toEqual(["dup-1", "unique-1"]);
   });
 });
 

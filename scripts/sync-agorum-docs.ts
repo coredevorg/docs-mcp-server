@@ -4,9 +4,20 @@
  * agorum-Doc-Sync: Transform + Multi-Target-Distribution.
  *
  * Reads the agorum export from ~/.acdocs/work/acdocs-live, normalizes
- * the YAML frontmatter (drops `date` and `topic`, keeps everything else),
- * writes files as <uuid>.md into the local target, and rsyncs the result
- * to the configured remote host. Prints refresh commands at the end.
+ * the YAML frontmatter (drops the per-fetch-run fields `generated_at`,
+ * `date` and `topic`, keeps everything else), writes files as <uuid>.md
+ * into the local target, and rsyncs the result to the configured remote
+ * host. Prints refresh commands at the end.
+ *
+ * The acdocs-live exporter accumulates copies of the same document across
+ * fetch runs (same uuid, different numbered filename). Duplicates are
+ * resolved by keeping the copy with the newest `generated_at`.
+ *
+ * The live export format carries two consecutive frontmatter blocks: an
+ * outer one (name, uuid, title, generated_at, …) and an inner one (name,
+ * uuid, date, link, path, topic). Both are normalized; volatile fields
+ * that change on every fetch run without a content change are dropped so
+ * unchanged documents stay byte-identical between syncs.
  *
  * Stable filenames + stable frontmatter bytes enable docs-mcp-server's
  * refresh_version to skip unchanged files via its mtime ETag (304).
@@ -24,7 +35,7 @@ import { spawnSync } from "node:child_process";
 import { Command } from "commander";
 
 const MD_EXTENSION = ".md";
-const DROP_KEYS = new Set(["date", "topic"]);
+const DROP_KEYS = new Set(["date", "topic", "generated_at"]);
 const DEFAULT_LOCAL_TARGET = "data/docs/agorum";
 const DEFAULT_REMOTE_TARGET =
   "root@sourcebot.coredev.org:/root/docs-mcp-server/data/docs/agorum";
@@ -53,37 +64,19 @@ interface LoadedSource {
 }
 
 /**
- * Drops `date` and `topic` from a YAML frontmatter block while leaving the
- * rest of the document (including other frontmatter fields and the body)
- * byte-identical.
+ * Drops the DROP_KEYS fields from the lines of a single YAML frontmatter
+ * block while leaving all other lines byte-identical.
  *
  * Line-based rewrite instead of parse+serialize to avoid drifting on YAML
  * serializer nuances (quoting, escaping of umlauts). Assumes the agorum
  * exporter writes each top-level key as a single line — verified for the
  * current format by sampling.
  */
-export function normalizeFrontmatter(raw: Buffer): Buffer {
-  const text = raw.toString("utf8");
-
-  if (!text.startsWith("---\n")) {
-    throw new Error("File does not start with YAML frontmatter delimiter (---)");
-  }
-
-  const openLen = 4; // "---\n"
-  const closeMarker = "\n---\n";
-  const closeIdx = text.indexOf(closeMarker, openLen);
-  if (closeIdx === -1) {
-    throw new Error("No closing YAML frontmatter delimiter (---) found");
-  }
-
-  const fmBlock = text.substring(openLen, closeIdx);
-  const body = text.substring(closeIdx + closeMarker.length);
-  const fmLines = fmBlock.split("\n");
-
+function normalizeBlockLines(fmBlock: string): string {
   const kept: string[] = [];
   let skippingContinuation = false;
 
-  for (const line of fmLines) {
+  for (const line of fmBlock.split("\n")) {
     const topKeyMatch = /^([A-Za-z_][\w-]*)\s*:/.exec(line);
     if (topKeyMatch) {
       if (DROP_KEYS.has(topKeyMatch[1])) {
@@ -103,7 +96,48 @@ export function normalizeFrontmatter(raw: Buffer): Buffer {
     kept.push(line);
   }
 
-  const newText = `---\n${kept.join("\n")}\n---\n${body}`;
+  return kept.join("\n");
+}
+
+/**
+ * Normalizes the leading frontmatter of a document: drops the volatile
+ * DROP_KEYS fields from the first block and — for the acdocs-live format,
+ * which writes a second metadata block right after the first — from that
+ * second block as well. The second block is only touched when it is
+ * recognizably metadata (properly closed and contains a `uuid` line), so
+ * thematic breaks in real markdown content stay untouched.
+ */
+export function normalizeFrontmatter(raw: Buffer): Buffer {
+  const text = raw.toString("utf8");
+
+  if (!text.startsWith("---\n")) {
+    throw new Error("File does not start with YAML frontmatter delimiter (---)");
+  }
+
+  const openLen = 4; // "---\n"
+  const closeMarker = "\n---\n";
+  const closeIdx = text.indexOf(closeMarker, openLen);
+  if (closeIdx === -1) {
+    throw new Error("No closing YAML frontmatter delimiter (---) found");
+  }
+
+  const outerBlock = normalizeBlockLines(text.substring(openLen, closeIdx));
+  let body = text.substring(closeIdx + closeMarker.length);
+
+  const secondOpen = /^(\n*)---\n/.exec(body);
+  if (secondOpen) {
+    const blockStart = secondOpen[0].length;
+    const innerCloseIdx = body.indexOf(closeMarker, blockStart - 1);
+    if (innerCloseIdx !== -1) {
+      const innerBlock = body.substring(blockStart, innerCloseIdx);
+      if (/^uuid\s*:/m.test(innerBlock)) {
+        const rest = body.substring(innerCloseIdx + closeMarker.length);
+        body = `${secondOpen[1]}---\n${normalizeBlockLines(innerBlock)}\n---\n${rest}`;
+      }
+    }
+  }
+
+  const newText = `---\n${outerBlock}\n---\n${body}`;
   return Buffer.from(newText, "utf8");
 }
 
@@ -159,24 +193,59 @@ export async function resolveSource(explicit?: string): Promise<string> {
   return resolved;
 }
 
-async function loadSources(sourceDir: string): Promise<LoadedSource[]> {
+/**
+ * Extracts the fetch-run timestamp used for duplicate resolution from the
+ * first frontmatter block: `generated_at` (live format), falling back to
+ * `date` (old single-block format). Returns "" when neither exists.
+ */
+function extractFetchTimestamp(raw: Buffer): string {
+  const text = raw.toString("utf8");
+  const closeIdx = text.indexOf("\n---\n", 4);
+  const head = closeIdx === -1 ? text : text.substring(0, closeIdx);
+  const match =
+    /^generated_at\s*:\s*(.+)$/m.exec(head) ?? /^date\s*:\s*(.+)$/m.exec(head);
+  return match ? match[1].trim() : "";
+}
+
+export async function loadSources(sourceDir: string): Promise<LoadedSource[]> {
   const files = await listMarkdownFiles(sourceDir);
-  const sources: LoadedSource[] = [];
-  const seen = new Map<string, string>();
+
+  // The acdocs-live exporter accumulates copies of the same document across
+  // fetch runs (same uuid, different numbered filename). Keep the copy with
+  // the newest fetch timestamp; on equal timestamps the later filename wins
+  // because files are processed in sorted order.
+  const byUuid = new Map<
+    string,
+    { sourcePath: string; raw: Buffer; fetchedAt: string }
+  >();
+  let duplicates = 0;
 
   for (const sourcePath of files) {
     const raw = await fs.readFile(sourcePath);
     const uuid = extractUuid(sourcePath, raw);
-    const existing = seen.get(uuid);
+    const fetchedAt = extractFetchTimestamp(raw);
+    const existing = byUuid.get(uuid);
     if (existing) {
-      throw new Error(
-        `UUID collision: '${uuid}' appears in both '${existing}' and '${sourcePath}'`,
-      );
+      duplicates += 1;
+      if (fetchedAt < existing.fetchedAt) continue;
     }
-    seen.set(uuid, sourcePath);
-    sources.push({ sourcePath, uuid, normalized: normalizeFrontmatter(raw) });
+    byUuid.set(uuid, { sourcePath, raw, fetchedAt });
   }
 
+  if (duplicates > 0) {
+    console.log(
+      `Note: ignored ${duplicates} older duplicate copies (kept newest generated_at per uuid)`,
+    );
+  }
+
+  const sources: LoadedSource[] = [];
+  for (const [uuid, entry] of byUuid) {
+    sources.push({
+      sourcePath: entry.sourcePath,
+      uuid,
+      normalized: normalizeFrontmatter(entry.raw),
+    });
+  }
   return sources;
 }
 
